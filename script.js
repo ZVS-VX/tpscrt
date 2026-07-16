@@ -1,5 +1,6 @@
 let isDeveloper = false; 
 let isParallaxEnabled = true; // Флаг состояния параллакса
+let editingSaveId = null; // null — создаем новый мир, если хранит ID — редактируем существующий
 
 
 // Объект с путями к изображениям фонов
@@ -164,23 +165,18 @@ function updateDashboard(data) {
     }
 }
 
-// Запрос статуса сессии
+// Переключаем адрес в зависимости от того, где запущен сервер (локально или на хостинге)
+const API_URL = "http://127.0.0.1:8000";
+const WS_URL = "ws://127.0.0.1:8000";
+let gameSocket = null; // Глобальный объект для WebSocket-соединения
+
+// 1. РЕАЛЬНЫЙ ЗАПРОС СТАТУСА ПАНЕЛИ
 async function fetchGameStatus() {
     try {
-        /*
-        const response = await fetch('http://localhost:5000/api/status');
+        const response = await fetch(`${API_URL}/api/status`);
+        if (!response.ok) throw new Error("Сеть ответила с ошибкой");
         const data = await response.json();
         updateDashboard(data);
-        */
-        setTimeout(() => {
-            const mockServerResponse = {
-                playerTwoOnline: false, 
-                hasSaveFile: true,      
-                role: "developer", 
-                deepseekTokens: 750000  
-            };
-            updateDashboard(mockServerResponse);
-        }, 1500);
     } catch (error) {
         console.error("Ошибка обновления дашборда:", error);
         document.querySelectorAll('.status-value.loading').forEach(el => {
@@ -190,6 +186,9 @@ async function fetchGameStatus() {
         });
     }
 }
+
+
+
 
 // --- ИНИЦИАЛИЗАЦИЯ И ЛОГИКА ИНТЕРФЕЙСА ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -206,11 +205,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgName = document.getElementById('bg-name');
     const btnPrev = document.getElementById('bg-prev');
     const btnNext = document.getElementById('bg-next');
+    const chatInput = document.getElementById('game-chat-input');
+    const btnSendMessage = document.getElementById('btn-send-message');
+    const chatMessagesBox = document.getElementById('chat-messages-box');
     const btnCreateWorld = document.getElementById('btn-create');
     const createScreen = document.getElementById('create-screen');
     const btnCreatePrev = document.getElementById('create-prev');
     const btnCreateNext = document.getElementById('create-next');
     const createStepTitle = document.getElementById('create-step-title');
+    const btnContinue = document.getElementById('btn-continue');
+    const savesScreen = document.getElementById('saves-screen');
+    const btnSavesCancel = document.getElementById('saves-cancel');
+    const savesContainer = document.getElementById('saves-list-container');
+    const gameScreen = document.getElementById('game-screen');
+    const btnGameExit = document.getElementById('game-exit-menu');
+    const gameDevPanel = document.getElementById('game-dev-panel');
+
+
+
+    // Функция переключения отображения панели отладки в зависимости от режима разработчика
+    function checkGameDevPanel() {
+    if (!gameDevPanel) return;
+    // Проверяем тогл режима разработчика в localStorage или глобальный флаг
+    const isDevMode = localStorage.getItem('game_dev_mode_enabled') === 'true';
+    
+    if (isDevMode && isDeveloper) {
+        gameDevPanel.style.display = "flex";
+    } else {
+        gameDevPanel.style.display = "none";
+    }
+    }
 
     // Переход на экран настроек
     if (btnSettings && mainScreen && settingsScreen) {
@@ -270,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-        // Изменение масштаба: цифра меняется на лету, а сам интерфейс масштабируется только после отпускания ползунка
+    // Изменение масштаба: цифра меняется на лету, а сам интерфейс масштабируется только после отпускания ползунка
     if (scaleRange && scaleVal) {
         // 1. Пока тянем: плавно обновляем только текст процентов, страница не дёргается
         scaleRange.addEventListener('input', (e) => {
@@ -299,22 +323,226 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-        // --- ЛОГИКА СОЗДАНИЯ НОВОГО МИРА ---
-
-    
-    let currentStep = 1;
-    const maxSteps = 3; // Основные этапы ввода данных
-
-    // Функция обновления шагов и заголовков (БЕЗ клонирования кнопки)
-    function updateCreateStepUI() {
-        // Скрываем все этапы контента
-        document.querySelectorAll('.create-step-content').forEach(el => el.classList.remove('active'));
+    // 2. РЕАЛЬНЫЙ ВЫВОД СПИСКА СОХРАНЕНИЙ ИЗ БЕКЕНДА
+    async function loadAndRenderSaves() {
+    try {
+        const response = await fetch(`${API_URL}/api/saves`);
+        if (!response.ok) throw new Error("Не удалось загрузить сохранения");
+        const saves = await response.json();
         
-        // Показываем текущий этап
+        const savesContainer = document.getElementById('saves-list-container');
+        if (!savesContainer) return;
+        savesContainer.innerHTML = ""; 
+
+        if (saves.length === 0) {
+            savesContainer.innerHTML = `<p class="step-description" style="text-align:center; padding: 2vh 0;">Сохранения не найдены. Создайте новый мир.</p>`;
+            return;
+        }
+
+        saves.forEach(save => {
+            const saveRow = document.createElement('div');
+            saveRow.className = 'save-row';
+            saveRow.innerHTML = `
+                <span class="save-name">${save.name}</span>
+                <div class="save-actions-group">
+                    <button class="save-action-icon btn-save-play" data-id="${save.id}" title="Играть"><img src="media/icons/game.png" alt="Играть"></button>
+                    <button class="save-action-icon btn-save-edit" data-id="${save.id}" title="Изменить"><img src="media/icons/pencil.png" alt="Изменить"></button>
+                    <button class="save-action-icon btn-save-delete" data-id="${save.id}" title="Удалить"><img src="media/icons/trash.png" alt="Удалить"></button>
+                </div>
+            `;
+            savesContainer.appendChild(saveRow);
+        });
+
+        // Привязка кнопки "Играть" -> Инициализирует WebSocket сессию
+        // Привязка кнопки "Играть" -> Инициализирует WebSocket сессию
+        document.querySelectorAll('.btn-save-play').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const saveId = e.currentTarget.dataset.id;
+                initGameSession(saveId);
+            });
+        });
+
+        // Привязка кнопки "Изменить" -> Загружает данные обратно в форму
+        document.querySelectorAll('.btn-save-edit').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const saveId = e.currentTarget.dataset.id;
+                editSaveWorld(saveId); // Вызываем реальную функцию загрузки
+            });
+        });
+
+        // Привязка кнопки "Удалить" -> Отправляет DELETE-запрос на бэкенд
+        document.querySelectorAll('.btn-save-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const saveId = e.currentTarget.dataset.id;
+                deleteSaveWorld(saveId); // Вызываем реальную функцию удаления
+            });
+        });
+
+
+    } catch (error) {
+        console.error("Ошибка рендера сохранений:", error);
+    }
+    }
+
+    // 3. РЕАЛЬНОЕ УДАЛЕНИЕ МИРА С СЕРВЕРА
+    async function deleteSaveWorld(saveId) {
+    if (!confirm("Вы уверены, что хотите безвозвратно удалить этот мир?")) return;
+    try {
+        const response = await fetch(`${API_URL}/api/saves/${saveId}`, { method: 'DELETE' });
+        if (response.ok) {
+            loadAndRenderSaves(); // Перерисовываем список
+            fetchGameStatus();    // Обновляем дашборд (вдруг удалили единственный сейв)
+        }
+    } catch (error) {
+        console.error("Ошибка удаления:", error);
+    }
+    }
+
+    // 4. РЕАЛЬНОЕ РЕДАКТИРОВАНИЕ МИРА (Загрузка данных в поля)
+    async function editSaveWorld(saveId) {
+    try {
+        const response = await fetch(`${API_URL}/api/saves/${saveId}`);
+        const save = await response.json();
+        
+        editingSaveId = saveId;
+
+        // Заполняем поля создания данными этого сохранения
+        document.getElementById('new-save-name').value = save.name;
+        document.querySelector('.textarea-huge').value = save.story;
+        document.getElementById('char-name').value = save.char_name;
+        document.getElementById('stat-strength').value = save.stats.strength;
+        document.getElementById('stat-endurance').value = save.stats.endurance;
+        document.getElementById('stat-agility').value = save.stats.agility;
+        document.getElementById('stat-powers').value = save.stats.powers;
+        document.getElementById('stat-charisma').value = save.stats.charisma;
+        document.getElementById('char-appearance').value = save.char_appearance;
+        document.getElementById('char-features').value = save.char_features;
+        
+        // Вписываем способности обратно в 3 текстовых поля (если они есть в сейве)
+        const savedPowers = save.powers || [];
+        document.getElementById('char-power-1').value = savedPowers[0] || '';
+        document.getElementById('char-power-2').value = savedPowers[1] || '';
+        document.getElementById('char-power-3').value = savedPowers[2] || '';
+
+
+        // Перекидываем пользователя на экран создания (редактирования)
+        currentStep = 1; // явно указываем глобальный шаг
+        updateCreateStepUI(); // вызываем глобальную функцию
+        document.getElementById('main-screen').classList.remove('active');
+        document.getElementById('saves-screen').classList.remove('active');
+        setTimeout(() => { document.getElementById('create-screen').classList.add('active'); }, 200);
+    } catch (error) {
+        console.error("Ошибка загрузки для редактирования:", error);
+    }
+    }
+
+    // 5. ПОДКЛЮЧЕНИЕ ЧАТА ЧЕРЕЗ WEBSOCKET
+    function initGameSession(saveId) {
+    const mainScreen = document.getElementById('main-screen');
+    const savesScreen = document.getElementById('saves-screen');
+    const createScreen = document.getElementById('create-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const chatMessagesBox = document.getElementById('chat-messages-box');
+    
+    if (chatMessagesBox) chatMessagesBox.innerHTML = ""; // Очищаем старый демо-чат
+
+    // Закрываем старое соединение, если оно было активно
+    if (gameSocket) gameSocket.close();
+
+    // Открываем WebSocket соединение с FastAPI, передавая ID сохранения
+    gameSocket = new WebSocket(`${WS_URL}/ws/game/${saveId}`);
+
+    gameSocket.onopen = () => {
+        console.log("WebSocket соединение установлено для сохранения:", saveId);
+        checkGameDevPanel();
+        
+        // Скрываем все возможные экраны откуда пришли и открываем игру
+        if (mainScreen) mainScreen.classList.remove('active');
+        if (savesScreen) savesScreen.classList.remove('active');
+        if (createScreen) createScreen.classList.remove('active');
+        setTimeout(() => { gameScreen.classList.add('active'); }, 200);
+    };
+
+    // Прием сообщений от сервера (от ИИ)
+    gameSocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        // Если сервер прислал обновление характеристик или инвентаря
+        if (data.type === "sync") {
+            document.getElementById('game-char-name').textContent = data.char.name;
+            document.getElementById('game-char-appearance').textContent = data.char.appearance;
+            document.getElementById('g-val-strength').textContent = data.char.stats.strength;
+            document.getElementById('g-val-agility').textContent = data.char.stats.agility;
+            document.getElementById('g-val-powers').textContent = data.char.stats.powers;
+            document.getElementById('g-val-charisma').textContent = data.char.stats.charisma;
+            
+            // Динамический цвет выносливости
+            const endEl = document.getElementById('g-val-endurance');
+            const endMaxEl = document.getElementById('g-val-endurance-max');
+            if (endEl && endMaxEl) {
+                endEl.textContent = data.char.stats.endurance;
+                endMaxEl.textContent = data.char.stats.endurance_max;
+                endEl.parentElement.className = parseInt(data.char.stats.endurance) < 5 ? "stat-val redtext" : "stat-val greentext";
+            }
+
+            // Рендерим текстовый инвентарь по 13 строкам
+            const inventoryLines = document.querySelectorAll('.inventory-line');
+            inventoryLines.forEach((line, index) => {
+                const item = data.char.inventory[index];
+                if (item) {
+                    line.textContent = item;
+                    line.classList.add('has-item');
+                } else {
+                    line.textContent = "Пусто";
+                    line.classList.remove('has-item');
+                }
+            });
+        } 
+        
+        // Если пришло обычное текстовое сообщение истории
+        if (data.type === "message") {
+            console.log("Пришло сообщение от сервера!");
+            appendMessage(data.text, false);
+        }
+    };
+
+    gameSocket.onclose = () => console.log("Игровая WebSocket сессия закрыта");
+    }
+
+    // 6. ОТПРАВКА СООБЩЕНИЯ ПОЛЬЗОВАТЕЛЯ В WEBSOCKET
+    function appendMessage(text, isUser) {
+        if (!chatMessagesBox || !text.trim()) return;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = isUser ? 'msg msg-user' : 'msg msg-system';
+        msgDiv.innerHTML = `<span class="msg-author">${isUser ? 'Вы:' : 'История:'}</span><p class="msg-text">${text}</p>`;
+        chatMessagesBox.appendChild(msgDiv);
+        
+        chatMessagesBox.scrollTop = chatMessagesBox.scrollHeight;
+    
+    
+        if (isUser) {
+            if (gameSocket && gameSocket.readyState === WebSocket.OPEN) {
+                gameSocket.send(JSON.stringify({ type: "action", text: text }));
+            } else {
+                console.error("WebSocket не готов. Текущий статус readyState:", gameSocket ? gameSocket.readyState : "сокет не создан");
+                appendMessage("Ошибка: Нет связи с сервером. Попробуйте перезайти в мир.", false);
+            }
+        }
+    }
+
+    // --- ЛОГИКА СОЗДАНИЯ НОВОГО МИРА ---
+    let currentStep = 1;
+    const maxSteps = 2; // ТЕПЕРЬ ВСЕГО 2 ЭТАПА ВВОДА ДАННЫХ
+
+    function updateCreateStepUI() {
+
+        document.querySelectorAll('.create-step-content').forEach(el => el.classList.remove('active'));
         const activeContent = document.querySelector(`.create-step-content[data-step="${currentStep}"]`);
         if (activeContent) activeContent.classList.add('active');
 
-        // Стилизация кнопок навигации в зависимости от шага
+
+
         if (currentStep === 1) {
             btnCreatePrev.textContent = "Отмена";
             btnCreatePrev.className = "action-btn btn-cancel"; 
@@ -323,49 +551,127 @@ document.addEventListener('DOMContentLoaded', () => {
             createStepTitle.textContent = `Создание мира: Этап 1 из ${maxSteps}`;
         } else if (currentStep <= maxSteps) {
             btnCreatePrev.textContent = "\u2039 Назад";
-            btnCreatePrev.className = "action-btn btn-apply"; // Кнопка «Назад» остается зеленой
-            btnCreateNext.textContent = currentStep === maxSteps ? "Сгенерировать" : "Далее \u203A";
+            btnCreatePrev.className = "action-btn btn-apply"; 
+            btnCreateNext.textContent = currentStep === maxSteps ? "Сохранить" : "Далее \u203A";
             btnCreateNext.className = "action-btn btn-apply";
             createStepTitle.textContent = `Создание мира: Этап ${currentStep} из ${maxSteps}`;
-        } else if (currentStep === 4) {
-            // Финальный экран: меняем текст на кнопке, полностью сохраняя её структуру
-            createStepTitle.textContent = "Мир создан";
-            btnCreatePrev.textContent = "Выйти в меню";
-            btnCreatePrev.className = "action-btn btn-cancel"; // Выход в меню красный
-            
-            btnCreateNext.textContent = "Войти в игру";
-            btnCreateNext.className = "action-btn btn-apply"; 
+        } else if (currentStep === 3) {
+            btnCreatePrev.className = "action-btn btn-cancel"; 
+            btnCreatePrev.textContent = "Выйти";
+            btnCreateNext.textContent = "Играть";
+            btnCreateNext.className = "action-btn btn-apply";
+
         }
+
     }
 
-    // Вход на экран создания мира с принудительным сбросом шага на первый
     if (btnCreateWorld && mainScreen && createScreen) {
         btnCreateWorld.addEventListener('click', (e) => {
             e.preventDefault();
-            currentStep = 1; // СБРОС: Каждое открытие экрана начинается строго с 1 этапа
+            currentStep = 1; 
+            editingSaveId = null; // СБРОС: Мы создаем НОВЫЙ мир с нуля
             updateCreateStepUI();
             mainScreen.classList.remove('active');
-            setTimeout(() => {
-                createScreen.classList.add('active');
-            }, 200);
+            setTimeout(() => { createScreen.classList.add('active'); }, 200);
         });
     }
 
     // Умный обработчик кнопки «Вперед / Сгенерировать / Войти в игру»
     if (btnCreateNext) {
-        btnCreateNext.addEventListener('click', () => {
+        btnCreateNext.addEventListener('click', async (e) => {
+            e.preventDefault(); // Предотвращаем перезагрузку страницы при отправке формы
+
             if (currentStep < maxSteps) {
-                // Шаг вперед на этапах 1 и 2
+                // Шаг вперед на промежуточных этапах (переход с 1 на 2 этап)
                 currentStep++;
                 updateCreateStepUI();
-            } else if (currentStep === maxSteps) {
-                // На 3 этапе генерируем файл сохранения и переходим на финал
-                currentStep = 4;
-                updateCreateStepUI();
-            } else if (currentStep === 4) {
-                // На 4 этапе кнопка работает как запуск игры и переносит все статы в лист персонажа
+            } 
+            else if (currentStep === maxSteps) {
+                // МЫ НА ВТОРОМ ЭТАПЕ — НАЖАЛИ «СГЕНЕРИРОВАТЬ»
+                
+                                // Считываем значения из трех новых полей способностей
+                const p1 = document.getElementById('char-power-1') ? document.getElementById('char-power-1').value : "";
+                const p2 = document.getElementById('char-power-2') ? document.getElementById('char-power-2').value : "";
+                const p3 = document.getElementById('char-power-3') ? document.getElementById('char-power-3').value : "";
+                
+                // Фильтруем массив, чтобы на бэкенд не улетали пустые строки, если заполнено только 1 или 2 поля
+                const powersArray = [p1, p2, p3].filter(p => p.trim() !== "");
+
+                const savePayload = {
+                    name: document.getElementById('new-save-name').value || "Новый мир",
+                    story: document.querySelector('.textarea-huge').value || "Стартовая легенда отсутствует",
+                    char_name: document.getElementById('char-name').value || "Герой",
+                    char_appearance: document.getElementById('char-appearance').value || "Не указана",
+                    char_features: document.getElementById('char-features').value || "Нет предыстории", // Ваша "предыстория"
+                    stats: {
+                        strength: parseInt(document.getElementById('stat-strength').value) || 5,
+                        endurance: parseInt(document.getElementById('stat-endurance').value) || 10,
+                        agility: parseInt(document.getElementById('stat-agility').value) || 5,
+                        powers: parseInt(document.getElementById('stat-powers').value) || 5,
+                        charisma: parseInt(document.getElementById('stat-charisma').value) || 5 // Ваше "влияние"
+                    },
+                    powers: powersArray // Отправляем чистый массив строк
+                };
+
+                if (!editingSaveId) {
+                    try {
+                    // Отправляем POST-запрос в FastAPI
+                    const response = await fetch(`${API_URL}/api/saves`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(savePayload)
+                    });
+
+                    if (response.ok) {
+                        const jsonResult = await response.json();
+                        console.log("Мир успешно создан на сервере с ID:", jsonResult.id);
+                        
+                        // Только после успешного ответа сервера переключаем экран на финал (Шаг 3)
+                        currentStep = 3;
+                        updateCreateStepUI();
+                        
+                        // Сразу обновляем статус панели управления и подтягиваем новый сейв
+                        fetchGameStatus();   
+                    } else {
+                        alert("Сервер вернул ошибку при попытке сохранить мир.");
+                    }
+                    } catch (err) {
+                    console.error("Ошибка сети при отправке данных на бэкенд:", err);
+                    alert("Не удалось связаться с Python-сервером. Проверьте, запущен ли main.py.");
+                    }
+                } else {
+                try {
+                    const response = await fetch(`${API_URL}/api/saves/${editingSaveId}`, {
+        method: 'PUT',
+        headers: { 
+            'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(savePayload)
+                    });
+                
+                    if (response.ok) {
+        console.log(`Сохранение ${editingSaveId} успешно обновлено.`);
+        
+        // Переводим интерфейс на финальный экран успеха (Шаг 3)
+        currentStep = 3; 
+        updateCreateStepUI();
+        
+        // Сразу обновляем дашборд главного меню
+        fetchGameStatus();   
+                    } else {
+        alert("Бэкенд вернул ошибку при попытке обновить мир.");
+                    }
+                } catch (err) {
+                    console.error("Ошибка сети при отправке PUT-запроса:", err);
+                    alert("Не удалось связаться с сервером для обновления данных.");
+                }
+                }
+                
+            } 
+            else if (currentStep === 3) {
+                // МЫ НА ФИНАЛЬНОМ ЭКРАНЕ — НАЖАЛИ «ВОЙТИ В ИГРУ»
                 const cName = document.getElementById('char-name').value || "Без имени";
-                const cAppearance = document.getElementById('char-appearance').value || "Обычная приключенческая";
+                const cAppearance = document.getElementById('char-appearance').value || "Не указана";
 
                 const sStr = document.getElementById('stat-strength').value;
                 const sEnd = document.getElementById('stat-endurance').value;
@@ -373,188 +679,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 const sPwr = document.getElementById('stat-powers').value;
                 const sChr = document.getElementById('stat-charisma').value;
 
-                // Запись данных в нередактируемый игровой интерфейс
+                // Синхронизируем статы с левым листом персонажа в игре
                 document.getElementById('game-char-name').textContent = cName;
                 document.getElementById('game-char-appearance').textContent = cAppearance;
-                document.getElementById('game-char-inventory').textContent = "Пусто (Снаряжение собирается в игре)";
                 
                 document.getElementById('g-val-strength').textContent = sStr;
                 document.getElementById('g-val-endurance').textContent = sEnd;
+                document.getElementById('g-val-endurance-max').textContent = sEnd; 
                 document.getElementById('g-val-agility').textContent = sAgl;
                 document.getElementById('g-val-powers').textContent = sPwr;
                 document.getElementById('g-val-charisma').textContent = sChr;
 
-                // Переключение экранов
+                // Переключаемся на окно игры
                 checkGameDevPanel(); 
                 if (createScreen && gameScreen) {
                     createScreen.classList.remove('active');
-                    setTimeout(() => {
-                        gameScreen.classList.add('active');
-                    }, 200);
+                    setTimeout(() => { gameScreen.classList.add('active'); }, 200);
                 }
             }
         });
     }
 
-    // Обработчик кнопки «Назад / Отмена / Выйти в меню»
     if (btnCreatePrev && mainScreen && createScreen) {
         btnCreatePrev.addEventListener('click', () => {
-            if (currentStep === 1 || currentStep === 4) {
-                // Из первого шага (Отмена) или финала (Выйти в меню) возвращаемся в главное меню
+            if (currentStep === 1 || currentStep === 3) {
                 createScreen.classList.remove('active');
-                setTimeout(() => {
-                    mainScreen.classList.add('active');
-                }, 200);
+                setTimeout(() => { mainScreen.classList.add('active'); }, 200);
             } else {
-                // Из промежуточных шагов шагаем назад
                 currentStep--;
                 updateCreateStepUI();
             }
         });
     }
 
-    // --- УПРАВЛЕНИЕ И АЛГОРИТМ ДЛЯ ПОЛУЗУНКОВ ХАРАКТЕРИСТИК ---
-    const btnAutoBalance = document.getElementById('btn-auto-balance');
-    const statSliders = document.querySelectorAll('.stat-slider');
+    // --- ВАЛИДАЦИЯ И КОНТРОЛЬ ЧИСЛОВЫХ ПОЛЕЙ ХАРАКТЕРИСТИК ---
+    const numberInputs = document.querySelectorAll('.stat-number-input');
+    numberInputs.forEach(input => {
+        // Пока мы пишем — просто убираем любые буквы, позволяя стереть всё до пустоты
+        input.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '');
+        });
 
-    // Обновление цифр характеристик в реальном времени при ручном перетаскивании
-    statSliders.forEach(slider => {
-        slider.addEventListener('input', (e) => {
-            const valId = `val-${e.target.id.replace('stat-', '')}`;
-            const valSpan = document.getElementById(valId);
-            if (valSpan) valSpan.textContent = e.target.value;
+        // Когда убираем фокус с поля — если оно пустое, ставим 0
+        input.addEventListener('blur', (e) => {
+            if (e.target.value === '') {
+                e.target.value = '0';
+            }
         });
     });
-    
-    if (btnAutoBalance) {
-        btnAutoBalance.addEventListener('click', () => {
-            const slidersArray = [
-                document.getElementById('stat-strength'),
-                document.getElementById('stat-endurance'),
-                document.getElementById('stat-agility'),
-                document.getElementById('stat-powers'),
-                document.getElementById('stat-charisma')
-            ];
 
-            const totalTargetPoints = 29; 
-            const minVal = 1;
-            const maxVal = 15;
+    // --- ЛОГИКА ЭКРАНА СОХРАНЕНИЙ ---
 
-            let currentAllocated = Array(slidersArray.length).fill(minVal);
-            let remainingPoints = totalTargetPoints - (minVal * slidersArray.length);
-
-            // Равномерное случайное распределение
-            while (remainingPoints > 0) {
-                const randomIndex = Math.floor(Math.random() * slidersArray.length);
-                if (currentAllocated[randomIndex] < maxVal) {
-                    currentAllocated[randomIndex]++;
-                    remainingPoints--;
-                }
-            }
-
-            // Перемещаем ползунки и обновляем текстовые значения
-            slidersArray.forEach((slider, index) => {
-                if (slider) {
-                    slider.value = currentAllocated[index];
-                    // Находим соответствующий текстовый span и меняем цифру
-                    const valId = `val-${slider.id.replace('stat-', '')}`;
-                    const valSpan = document.getElementById(valId);
-                    if (valSpan) valSpan.textContent = currentAllocated[index];
-                }
-            });
-        });
-    }
-
- // --- ЛОГИКА ЭКРАНА СОХРАНЕНИЙ ---
-    const btnContinue = document.getElementById('btn-continue');
-    const savesScreen = document.getElementById('saves-screen');
-    const btnSavesCancel = document.getElementById('saves-cancel');
-    const savesContainer = document.getElementById('saves-list-container');
-
-    // ТЕСТОВЫЙ БЛОК: 15 сохранений для проверки перемотки списка
-    const mockSavesData = [
-        { id: 1, name: "Древний Авалон" },
-        { id: 2, name: "Забытые Земли Элдерии" },
-        { id: 3, name: "Новый Порядок Сириуса" },
-        { id: 4, name: "Цитадель Вальхаллы" },
-        { id: 5, name: "Подземелья Мории" },
-        { id: 6, name: "Звездный Рубеж" },
-        { id: 7, name: "Оазис Селены" },
-        { id: 8, name: "Туманный Альбион" },
-        { id: 9, name: "Бастион Дракона" },
-        { id: 10, name: "Хроники Пустоты" },
-        { id: 11, name: "Затерянный Сектор" },
-        { id: 12, name: "Огни Проксимы" },
-        { id: 13, name: "Новая Атлантида" },
-        { id: 14, name: "Замки Элизиума" },
-        { id: 15, name: "Эхо Черной Дыры" }
-    ];
-
-    // Функция для отрисовки списка сохранений на экране
-    function renderSavesList(saves) {
-        if (!savesContainer) return;
-        savesContainer.innerHTML = ""; 
-
-        if (saves.length === 0) {
-            savesContainer.innerHTML = `<p class="step-description" style="text-align:center; padding: 2vh 0;">Сохранения не найдены.</p>`;
-            return;
-        }
-
-        saves.forEach(save => {
-            const saveRow = document.createElement('div');
-            saveRow.className = 'save-row';
-
-            saveRow.innerHTML = `
-                <span class="save-name">${save.name}</span>
-                <div class="save-actions-group">
-                    <!-- Кнопка Играть -->
-                    <button class="save-action-icon btn-save-play" data-id="${save.id}" title="Играть">
-                        <img src="media/icons/game.png" alt="Играть">
-                    </button>
-                    <!-- Кнопка Изменить -->
-                    <button class="save-action-icon btn-save-edit" data-id="${save.id}" title="Изменить">
-                        <img src="media/icons/pencil.png" alt="Изменить">
-                    </button>
-                    <!-- Кнопка Удалить -->
-                    <button class="save-action-icon btn-save-delete" data-id="${save.id}" title="Удалить">
-                        <img src="media/icons/trash.png" alt="Удалить">
-                    </button>
-                </div>
-            `;
-            savesContainer.appendChild(saveRow);
-        });
-
-        // Обработчики кликов на сгенерированные кнопки
-        // Клик по кнопке «Играть» внутри списка сохранений
-        document.querySelectorAll('.btn-save-play').forEach(btn => {
-            btn.addEventListener('click', () => {
-                checkGameDevPanel(); // Проверяем режим разработчика
-                if (savesScreen && gameScreen) {
-                    savesScreen.classList.remove('active');
-                    setTimeout(() => { 
-                        gameScreen.classList.add('active'); 
-                    }, 200);
-                }
-            });
-        });
-
-        document.querySelectorAll('.btn-save-edit').forEach(btn => {
-            btn.addEventListener('click', (e) => alert(`Редактирование сохранения ID: ${e.currentTarget.dataset.id}`));
-        });
-        document.querySelectorAll('.btn-save-delete').forEach(btn => {
-            btn.addEventListener('click', (e) => alert(`Удаление сохранения ID: ${e.currentTarget.dataset.id}`));
-        });
-    }
-
-    // Вход на экран списка сохранений
     if (btnContinue && mainScreen && savesScreen) {
         btnContinue.addEventListener('click', (e) => {
             e.preventDefault();
-            renderSavesList(mockSavesData); 
+            loadAndRenderSaves(); // Локальный вызов функции без задержек и window
             mainScreen.classList.remove('active');
-            setTimeout(() => {
-                savesScreen.classList.add('active');
-            }, 200);
+            setTimeout(() => { savesScreen.classList.add('active'); }, 200);
         });
     }
 
@@ -568,29 +749,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-     // --- ЛОГИКА ИГРОВОГО ЭКРАНА ---
-    const gameScreen = document.getElementById('game-screen');
-    const btnGameExit = document.getElementById('game-exit-menu');
-    const chatInput = document.getElementById('game-chat-input');
-    const btnSendMessage = document.getElementById('btn-send-message');
-    const chatMessagesBox = document.getElementById('chat-messages-box');
-    const gameDevPanel = document.getElementById('game-dev-panel');
+    // --- ЛОГИКА ИГРОВОГО ЭКРАНА ---
 
-    // Функция переключения отображения панели отладки в зависимости от режима разработчика
-    function checkGameDevPanel() {
-        if (!gameDevPanel) return;
-        // Проверяем тогл режима разработчика в localStorage или глобальный флаг
-        const isDevMode = localStorage.getItem('game_dev_mode_enabled') === 'true';
-        
-        if (isDevMode && isDeveloper) {
-            gameDevPanel.style.display = "flex";
-        } else {
-            gameDevPanel.style.display = "none";
-        }
-    }
-
-    // Подвязываем вход в игру из списка сохранений (пока как заглушка для интерфейса)
-    // Заменим старый alert на полноценное переключение экрана
     window.renderSavesList = function(saves) {
         if (!savesContainer) return;
         savesContainer.innerHTML = ""; 
@@ -626,33 +786,33 @@ document.addEventListener('DOMContentLoaded', () => {
             gameScreen.classList.remove('active');
             setTimeout(() => { mainScreen.classList.add('active'); }, 200);
         });
-    }
+    };
 
-    // Демонстрационная отправка сообщений в чат для проверки прокрутки
-    function appendMessage(text, isUser) {
-        if (!chatMessagesBox || !text.trim()) return;
+        // --- ОБРАБОТКА НАЖАТИЙ ДЛЯ ИГРОВОГО ЧАТА ---
 
-        const msgDiv = document.createElement('div');
-        msgDiv.className = isUser ? 'msg msg-user' : 'msg msg-system';
-        
-        msgDiv.innerHTML = `
-            <span class="msg-author">${isUser ? 'Вы:' : 'История:'}</span>
-            <p class="msg-text">${text}</p>
-        `;
-        
-        chatMessagesBox.appendChild(msgDiv);
-        chatInput.value = "";
-        
-        // Автоматическая прокрутка чата вниз к новому сообщению
-        chatMessagesBox.scrollTop = chatMessagesBox.scrollHeight;
-    }
+    if (chatInput && btnSendMessage) {
+        // Единая функция, которая считывает текст, выводит его на экран и шлет в Python
+        const handleUserSend = () => {
+            const text = chatInput.value.trim();
+            if (!text) return; // Если в поле пусто или одни пробелы — ничего не делаем
+            // 1. Сразу очищаем поле ввода, чтобы предотвратить дребезг клавиш и повторный спам
+            chatInput.value = ""; 
+            // 2. Отображаем реплику игрока на экране (флаг true означает, что автор — игрок)
+            appendMessage(text, true);
 
-    if (btnSendMessage && chatInput) {
-        btnSendMessage.addEventListener('click', () => appendMessage(chatInput.value, true));
+        };
+
+        // Событие 1: Клик левой кнопкой мыши по кнопке «Отправить»
+        btnSendMessage.addEventListener('click', handleUserSend);
+
+        // Событие 2: Нажатие клавиши «Enter» внутри текстового поля ввода
         chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') appendMessage(chatInput.value, true);
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Предотвращаем стандартный перенос строки в инпуте
+                handleUserSend();
+            };
         });
-    }
+    };
 });
 
 // Инвертированный 3D-параллакс с проверкой тумблера

@@ -1053,3 +1053,250 @@ input:checked + .toggle-slider::before {
 }
 .prof-text::-webkit-scrollbar { width: 0.2vw; }
 .prof-text::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 1vw; }
+
+/* Стилизация выпадающего списка сверхспособностей */
+.modern-select {
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://w3.org' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.8vw center;
+    background-size: 0.9vw;
+    padding-right: 2.5vw !important;
+}
+
+/* Стилизация всплывающих опций списка в темной теме */
+.modern-select option {
+    background-color: rgb(30, 30, 45);
+    color: #ffffff;
+    font-family: sans-serif;
+}
+
+/* --- СТИЛИЗАЦИЯ СТЕКЛЯННОГО СПИСКА И ЧИСЛОВЫХ ПОЛЕЙ --- */
+
+/* Компактные поля для ввода чисел */
+.stat-number-input {
+    width: 4.5vw !important;
+    height: 3.6vh !important;
+    text-align: center;
+    padding: 0 !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.05vw;
+    font-weight: 700;
+}
+
+/* Полное удаление системных стрелочек во всех браузерах */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: none;
+}
+
+/* Стилизация самого выпадающего списка под матовое стекло */
+.modern-select {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 0.1vw solid rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #ffffff;
+    box-shadow: 0 0.4vh 1.5vw rgba(0, 0, 0, 0.15);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.modern-select:focus {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(0, 245, 212, 0.4) !important;
+}
+
+/* Стилизация выпадающего блока с опциями */
+.modern-select option {
+    background-color: rgb(25, 25, 35) !important; /* Глухой темный цвет, чтобы сочетаться с фоном */
+    color: rgba(255, 255, 255, 0.9);
+    padding: 1vh;
+}
+
+/* --- ФИНАЛЬНАЯ СТИЛИЗАЦИЯ СЕЛЕКТА ПОД СТЕКЛО --- */
+.modern-select {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 0.1vw solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 0.5vw;
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 0.95vw;
+    padding: 1.2vh 2.5vw 1.2vh 0.8vw !important;
+    outline: none;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: 0 0.4vh 1.5vw rgba(0, 0, 0, 0.2);
+    
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://w3.org' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.8vw center;
+    background-size: 0.9vw;
+}
+
+/* Стилизация выпадающего списка в современных браузерах */
+.modern-select option {
+    background: rgb(34, 34, 48) !important; /* Насыщенный цвет матового стекла */
+    color: #ffffff !important;
+    padding: 1vh !important;
+}
+
+/* Мягкое зеленое свечение для выносливости в игре */
+.game-stat-item .token-value {
+    color: rgba(0, 255, 220, 1) !important;
+    text-shadow: 0 0 0.8vw rgba(0, 245, 212, 0.6) !important;
+}
+
+/* Мягкое неоново-зеленое свечение для выносливости в листе персонажа */
+.game-stat-item .greentext {
+    color: rgba(0, 255, 220, 1) !important; /* Яркий бирюзово-зеленый оттенок */
+    text-shadow: 0 0 0.8vw rgba(0, 245, 212, 0.6) !important; /* Объемный glow-эффект */
+    font-weight: 700;
+}
+
+/* Мягкое неоново-красное свечение для критической выносливости */
+.game-stat-item .redtext {
+    color: rgba(255, 73, 73, 1) !important; /* Яркий красный оттенок */
+    text-shadow: 0 0 0.8vw rgba(244, 67, 54, 0.6) !important; /* Объемный glow-эффект */
+    font-weight: 700;
+}
+
+/* --- ЯРКИЕ И КОНТРАСТНЫЕ ПОДСКАЗКИ (PLACEHOLDERS) --- */
+::placeholder {
+    color: rgba(255, 255, 255, 0.45) !important;
+    opacity: 1; 
+}
+:-ms-input-placeholder { color: rgba(255, 255, 255, 0.45) !important; }
+::-ms-input-placeholder { color: rgba(255, 255, 255, 0.45) !important; }
+
+/* Автоматический перенос слишком длинного текста в сообщениях чата */
+.msg-text {
+    word-break: break-word; /* Разрывает длинные слова, если они не влезают */
+    overflow-wrap: break-word; /* Современный стандарт переноса строк */
+    white-space: pre-wrap; /* Сохраняет абзацы И переносит длинные строки */
+}
+
+/* Настройки для самого поля ввода, чтобы текст внутри него не ломал Layout */
+.chat-input-field {
+    word-break: break-all;
+}
+
+/* --- СТИЛИЗАЦИЯ ИНВЕНТАРЯ ИЗ 13 СЛОТОВ --- */
+
+/* Сетка инвентаря: 4 колонки, авто-высота */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5vw;
+    margin-top: 1vh;
+    max-height: 22vh; /* Ограничиваем общую высоту */
+    overflow-y: auto;  /* Если слотов станет больше, появится аккуратный скролл */
+    padding-right: 0.2vw;
+}
+
+/* Кастомный скроллбар для сетки инвентаря */
+.inventory-grid::-webkit-scrollbar { width: 0.2vw; }
+.inventory-grid::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 1vw; }
+
+/* Отдельная ячейка инвентаря */
+.inventory-slot {
+    aspect-ratio: 1 / 1; /* Строгий квадрат */
+    background-color: rgba(0, 0, 0, 0.25); /* Темный глухой фон заблокированного предмета */
+    border: 0.1vw solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.4vw;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: not-allowed; /* Так как в интерфейсе они пока не кликабельны */
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Маленький аккуратный номер слота в углу ячейки */
+.inventory-slot::after {
+    content: attr(data-slot); /* Берет номер из HTML-атрибута */
+    position: absolute;
+    top: 0.2vh;
+    left: 0.3vw;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.6vw;
+    color: rgba(255, 255, 255, 0.2); /* Очень тусклый номер, чтобы не мешать */
+    font-weight: 700;
+}
+
+/* Стили для будущих предметов внутри слотов (когда бэкенд будет присылать иконки вещей) */
+.inventory-slot img {
+    max-width: 65%;
+    max-height: 65%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 0.3vw rgba(255, 255, 255, 0.2));
+}
+/* --- ТЕКСТОВЫЙ ИНВЕНТАРЬ ИЗ 13 СТРОК С РАЗДЕЛИТЕЛЯМИ --- */
+
+/* Вертикальный контейнер для списка вещей */
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1vh;
+    max-height: 25vh; /* Ограничиваем высоту, чтобы список не растягивал панель */
+    overflow-y: auto;  /* При избытке строк появится аккуратный скролл */
+    padding-right: 0.4vw;
+}
+
+/* Кастомный тонкий скроллбар для списка инвентаря */
+.inventory-list::-webkit-scrollbar { 
+    width: 0.2vw; 
+}
+.inventory-list::-webkit-scrollbar-thumb { 
+    background: rgba(255, 255, 255, 0.15); 
+    border-radius: 1vw; 
+}
+
+/* Отдельная строка предмета */
+.inventory-line {
+    display: flex;
+    align-items: center;
+    font-family: sans-serif;
+    font-size: 0.85vw;
+    color: rgba(255, 255, 255, 0.35); /* Изначально тусклый цвет для пустых слотов */
+    padding: 0.8vh 0;
+    
+    /* Тонкая полупрозрачная полоска-разделитель снизу */
+    border-bottom: 0.05vw solid rgba(255, 255, 255, 0.08); 
+    
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Убираем нижнюю полоску у самого последнего 13-го элемента */
+.inventory-line:last-child {
+    border-bottom: none;
+}
+
+/* Красивый фиксированный номер слота перед названием предмета */
+.inventory-line::before {
+    content: attr(data-slot) ". "; /* Берет номер из HTML (01., 02. и т.д.) */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85vw;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.15); /* Очень тусклый номер, чтобы не отвлекать */
+    margin-right: 0.6vw;
+    min-width: 1.5vw;
+}
+
+/* Стиль для реального предмета (когда бэкенд сотрет "Пусто" и запишет вещь) */
+/* Чтобы применить его к строке, вы (или бэкенд) просто добавите ей класс .has-item */
+.inventory-line.has-item {
+    color: rgba(255, 255, 255, 0.9); /* Текст загорается белым */
+}
+.inventory-line.has-item::before {
+    color: rgba(0, 245, 212, 0.4); /* Номер слота подсвечивается мягкой бирюзой */
+}

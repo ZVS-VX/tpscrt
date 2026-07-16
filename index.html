@@ -127,31 +127,8 @@
             <section class="settings-board create-board">
                 <h2 class="settings-title" id="create-step-title">Создание мира: Этап 1 из 3</h2>
 
-                <!-- ЭТАП 1: Системные промпты DeepSeek -->
-                <div class="create-step-content active" data-step="1">
-                    <p class="step-description">Редактирование системных промптов нейросети DeepSeek</p>
-                    <div class="prompt-grid">
-                        <div class="prompt-field">
-                            <label class="prompt-label">Основной промпт</label>
-                            <textarea class="modern-textarea" placeholder="Генеральная логика мира, законы вселенной и стиль повествования..."></textarea>
-                        </div>
-                        <div class="prompt-field">
-                            <label class="prompt-label">Логика расчетов</label>
-                            <textarea class="modern-textarea" placeholder="Правила вычисления характеристик, боев и проверок навыков..."></textarea>
-                        </div>
-                        <div class="prompt-field">
-                            <label class="prompt-label">Прием сообщений</label>
-                            <textarea class="modern-textarea" placeholder="Правила интерпретации текстовых действий, которые пишет игрок..."></textarea>
-                        </div>
-                        <div class="prompt-field">
-                            <label class="prompt-label">Выдача информации</label>
-                            <textarea class="modern-textarea" placeholder="Формат вывода ответов (текст истории, логи изменений, статус)..."></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ЭТАП 2: Название и описание сюжета -->
-                <div class="create-step-content" data-step="2">
+                <!-- ЭТАП 1: Название и описание сюжета -->
+                <div class="create-step-content" data-step="1">
                     <p class="step-description">Укажите имя для вашего нового мира и его стартовую легенду</p>
                     
                     <!-- Новое поле для названия сохранения -->
@@ -166,8 +143,8 @@
                     </div>
                 </div>
 
-                <!-- ЭТАП 3: Характеристики персонажа (Ползунки параметров) -->
-                <div class="create-step-content" data-step="3">
+                <!-- ЭТАП 2: Характеристики персонажа (Обновленные параметры) -->
+                <div class="create-step-content" data-step="2">
                     <p class="step-description">Укажите стартовые данные и атрибуты вашего персонажа</p>
                     <div class="char-grid">
                         <!-- Левая колонка (Характеристики в виде ползунков) -->
@@ -177,72 +154,78 @@
                                 <input type="text" id="char-name" class="modern-input" placeholder="Например: Арагорн, Люциус, Эвелин...">
                             </div>
                             
-                            <!-- Блок параметров в виде красивых слайдеров -->
+                                                        <!-- Блок параметров (числовые поля без стрелок + зафиксированная выносливость) -->
                             <div class="stats-group">
                                 <div class="stat-row-item">
                                     <label class="prompt-label">Сила</label>
                                     <div class="range-container stat-range-container">
-                                        <input type="range" id="stat-strength" class="stat-slider" min="1" max="15" value="5">
-                                        <span id="val-strength" class="range-value stat-val">5</span>
+                                        <input type="text" id="stat-strength" class="modern-input stat-number-input" value="5" maxlength="3">
                                     </div>
                                 </div>
                                 <div class="stat-row-item">
                                     <label class="prompt-label">Выносливость</label>
                                     <div class="range-container stat-range-container">
-                                        <input type="range" id="stat-endurance" class="stat-slider" min="1" max="15" value="5">
-                                        <span id="val-endurance" class="range-value stat-val">5</span>
+                                        <!-- Поле заблокировано, всегда 10 по умолчанию -->
+                                        <input type="text" id="stat-endurance" class="modern-input stat-number-input textarea-locked" value="10" readonly>
                                     </div>
                                 </div>
                                 <div class="stat-row-item">
                                     <label class="prompt-label">Ловкость</label>
                                     <div class="range-container stat-range-container">
-                                        <input type="range" id="stat-agility" class="stat-slider" min="1" max="15" value="5">
-                                        <span id="val-agility" class="range-value stat-val">5</span>
+                                        <input type="text" id="stat-agility" class="modern-input stat-number-input" value="5" maxlength="3">
                                     </div>
                                 </div>
                                 <div class="stat-row-item">
-                                    <label class="prompt-label">Суперспособности</label>
+                                    <label class="prompt-label">Сверхспособности</label>
                                     <div class="range-container stat-range-container">
-                                        <input type="range" id="stat-powers" class="stat-slider" min="1" max="15" value="5">
-                                        <span id="val-powers" class="range-value stat-val">5</span>
+                                        <input type="text" id="stat-powers" class="modern-input stat-number-input" value="5" maxlength="3">
                                     </div>
                                 </div>
                                 <div class="stat-row-item">
-                                    <label class="prompt-label">Дар убеждения</label>
+                                    <label class="prompt-label">Влияние</label>
                                     <div class="range-container stat-range-container">
-                                        <input type="range" id="stat-charisma" class="stat-slider" min="1" max="15" value="5">
-                                        <span id="val-charisma" class="range-value stat-val">5</span>
+                                        <input type="text" id="stat-charisma" class="modern-input stat-number-input" value="5" maxlength="3">
                                     </div>
                                 </div>
                             </div>
+
                             
-                            <!-- Кнопка автобаланса -->
-                            <!-- Кнопка автобаланса параметров -->
-                            <button type="button" id="btn-auto-balance" class="action-btn btn-apply auto-balance-btn">Автоматическое распределение</button>
-                            <!-- НОВОЕ: Невидимый контейнер-распорка для поглощения высоты сетки -->
+                            <!-- ТРИ ТЕКСТОВЫХ ПОЛЯ ДЛЯ ЛЮБЫХ СПОСОБНОСТЕЙ -->
+                            <div class="char-field" style="margin-top: 1.5vh; display: flex; flex-direction: column; gap: 1.2vh;">
+                                <label class="prompt-label">Сверхспособности персонажа (Укажите до 3-х)</label>
+                                <input type="text" id="char-power-1" class="modern-input" placeholder="Первая способность (например: Телекинез)...">
+                                <input type="text" id="char-power-2" class="modern-input" placeholder="Вторая способность (например: Левитация)...">
+                                <input type="text" id="char-power-3" class="modern-input" placeholder="Третья способность (например: Ночное зрение)...">
+                            </div>
+
+                            
+                            <!-- Кнопка автобаланса (скрыта с экрана, но осталась в коде) -->
+                            <button type="button" id="btn-auto-balance" class="action-btn btn-apply auto-balance-btn" style="display: none !important;">Автоматическое распределение</button>
                             <div class="create-col-spacer"></div>
                         </div>
 
-                        <!-- Правая колонка -->
+                        <!-- Правая колонка (Конкретизированные плейсхолдеры) -->
                         <div class="char-column">
                             <div class="char-field">
                                 <label class="prompt-label">Описание внешности</label>
-                                <textarea id="char-appearance" class="modern-textarea" placeholder="Рост, телосложение, шрамы, фамильный плащ, приметные черты лица..."></textarea>
+                                <textarea id="char-appearance" class="modern-textarea" placeholder="Укажите: рост, вес, глаза, лицо, волосы, телосложение, особые приметы..."></textarea>
                             </div>
                             <div class="char-field">
                                 <label class="prompt-label">Карманы (Предметы) <span style="opacity: 0.5;">— Будут пополняться в игре</span></label>
                                 <textarea id="char-inventory" class="modern-textarea textarea-locked" readonly placeholder="Пусто. Снаряжение будет получено по мере прохождения истории..."></textarea>
                             </div>
                             <div class="char-field">
-                                <label class="prompt-label">Дополнительные характеристики</label>
-                                <textarea id="char-features" class="modern-textarea textarea-short" placeholder="Происхождение, фракция, репутация среди местных гильдий..."></textarea>
+                                <!-- Переименовано в предысторию персонажа -->
+                                <label class="prompt-label">Предыстория персонажа</label>
+                                <textarea id="char-features" class="modern-textarea textarea-short" placeholder="Опишите краткую биографию, происхождение и важные события из прошлого персонажа..."></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
 
+
                 <!-- ЭТАП ФИНАЛ: Завершение генерации -->
-                <div class="create-step-content" data-step="4">
+                <div class="create-step-content" data-step="3">
                     <div class="final-status-container">
                         <div class="success-icon">&#10003;</div>
                         <p class="success-text" style="font-size: 1.3vw; margin-top: 1vh;">Файл сохранения успешно сгенерирован!</p>
@@ -291,15 +274,33 @@
                     
                     <h4 class="panel-subtitle">Характеристики</h4>
                     <div class="game-stats-list">
+                        <div class="game-stat-item"><span class="g-stat-label">Выносливость:</span> <span class="stat-val greentext"><span id="g-val-endurance">10</span>/<span id="g-val-endurance-max">10</span></span></div>
                         <div class="game-stat-item"><span class="g-stat-label">Сила:</span> <span id="g-val-strength" class="stat-val">5</span></div>
-                        <div class="game-stat-item"><span class="g-stat-label">Выносливость:</span> <span id="g-val-endurance" class="stat-val">5</span></div>
                         <div class="game-stat-item"><span class="g-stat-label">Ловкость:</span> <span id="g-val-agility" class="stat-val">5</span></div>
-                        <div class="game-stat-item"><span class="g-stat-label">Суперспособности:</span> <span id="g-val-powers" class="stat-val">5</span></div>
-                        <div class="game-stat-item"><span class="g-stat-label">Убеждение:</span> <span id="g-val-charisma" class="stat-val">5</span></div>
+                        <div class="game-stat-item"><span class="g-stat-label">Сверхспособности:</span> <span id="g-val-powers" class="stat-val">5</span></div>
+                        <div class="game-stat-item"><span class="g-stat-label">Влияние:</span> <span id="g-val-charisma" class="stat-val">5</span></div>
                     </div>
 
                     <h4 class="panel-subtitle">Инвентарь</h4>
-                    <p id="game-char-inventory" class="prof-text text-muted">Карманы пусты...</p>
+                    <!-- Текстовый список из 13 строк с разделителями -->
+                    <div id="game-inventory-list" class="inventory-list">
+                        <div class="inventory-line" data-slot="01">Пусто</div>
+                        <div class="inventory-line" data-slot="02">Пусто</div>
+                        <div class="inventory-line" data-slot="03">Пусто</div>
+                        <div class="inventory-line" data-slot="04">Пусто</div>
+                        <div class="inventory-line" data-slot="05">Пусто</div>
+                        <div class="inventory-line" data-slot="06">Пусто</div>
+                        <div class="inventory-line" data-slot="07">Пусто</div>
+                        <div class="inventory-line" data-slot="08">Пусто</div>
+                        <div class="inventory-line" data-slot="09">Пусто</div>
+                        <div class="inventory-line" data-slot="10">Пусто</div>
+                        <div class="inventory-line" data-slot="11">Пусто</div>
+                        <div class="inventory-line" data-slot="12">Пусто</div>
+                        <div class="inventory-line" data-slot="13">Пусто</div>
+                    </div>
+
+
+
                 </aside>
 
                 <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: Интерактивный Чат -->
