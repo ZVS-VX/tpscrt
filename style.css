@@ -1,0 +1,1055 @@
+/* Сброс базовых отступов */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Базовый слой страницы */
+body {
+    background-color: rgb(15, 15, 25);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4vh 4vw;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Настройки фонового слоя для реализации 3D-параллакса и динамической смены картинок */
+body::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* Изначально берет переменную из JS, если её нет — ставит звездное небо по умолчанию */
+    background-image: linear-gradient(rgba(15, 15, 25, 0.35), rgba(15, 15, 25, 0.35)), 
+                      var(--bg-image, url('media/bg-stars.jpg'));
+                      
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    transform: scale(1.05) translate(var(--bg-x, 0), var(--bg-y, 0));
+    transition: transform 0.1s ease-out; 
+    will-change: transform;
+}
+
+/* Главная вертикальная обертка с поддержкой динамического масштабирования */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 60vw;
+    
+    /* Применяем масштаб из JS-переменной (по умолчанию 100% = 1) */
+    transform: scale(var(--interface-scale, 1));
+    
+    /* Точка, относительно которой происходит сжатие/расширение (строго по центру) */
+    transform-origin: center center;
+    
+    /* Плавное изменение размера за 0.25 секунды с мягким торможением */
+    transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); 
+    will-change: transform;
+}
+
+/* Базовый контейнер для экранов */
+.screen-wrapper {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 6vh;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.screen-wrapper.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* --- ОБЩИЕ СТИЛИ ПОЛУПРОЗРАЧНОГО СТЕКЛА (GLASSMORPHISM) --- */
+.status-board, .settings-board {
+    background-color: rgba(255, 255, 255, 0.05); 
+    border: 0.1vw solid rgba(255, 255, 255, 0.15); 
+    border-radius: 1vw;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 1vh 3vw rgba(0, 0, 0, 0.3);
+}
+
+/* --- ТАБЛО СТАТУСА СЕССИИ --- */
+.status-board {
+    width: 35vw;
+    padding: 2.5vh 2vw;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: sans-serif;
+    font-size: 1vw;
+}
+
+.status-label { 
+    color: rgba(255, 255, 255, 0.55); 
+}
+
+.status-value { 
+    color: rgba(255, 255, 255, 0.95); 
+    font-weight: 600; 
+}
+
+.status-value.spec-value { 
+    color: rgba(195, 145, 255, 1); 
+    text-shadow: 0 0 0.8vw rgba(155, 93, 229, 0.6); 
+}
+
+.status-value.token-value { 
+    color: rgba(0, 255, 220, 1); 
+    text-shadow: 0 0 0.8vw rgba(0, 245, 212, 0.6); 
+}
+
+.status-value.loading {
+    color: rgba(255, 255, 255, 0.3);
+    animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse { 
+    0%, 100% { opacity: 0.4; } 
+    50% { opacity: 1; } 
+}
+
+/* --- СЕТКА ДЛЯ 3 БОЛЬШИХ КНОПОК МЕНЮ --- */
+.menu-container {
+    display: grid;
+    grid-template-columns: repeat(3, 13vw);
+    gap: 4vw;
+    justify-content: center;
+    align-items: start;
+}
+
+.menu-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    gap: 2vh;
+}
+
+.card-title {
+    color: rgba(255, 255, 255, 0.9); 
+    font-family: sans-serif;
+    font-size: 1.1vw;
+    font-weight: 500;
+    text-align: center;
+    line-height: 1.3;
+    transition: color 0.2s ease;
+}
+
+.card-icon {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background-color: rgba(255, 255, 255, 0.07); 
+    border: 0.1vw solid rgba(255, 255, 255, 0.15); 
+    border-radius: 1.5vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 0.8vh 2.5vw rgba(0, 0, 0, 0.25);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
+                background-color 0.2s ease, 
+                border-color 0.2s ease, 
+                box-shadow 0.2s ease;
+}
+
+.card-icon img { 
+    max-width: 40%; 
+    max-height: 40%; 
+    object-fit: contain; 
+    filter: drop-shadow(0 0 0.4vw rgba(255, 255, 255, 0.15)); 
+    transition: opacity 0.2s ease;
+}
+
+.menu-card:not(.disabled):hover .card-icon {
+    background-color: rgba(255, 255, 255, 0.18); 
+    border-color: rgba(255, 255, 255, 0.4); 
+    transform: translateY(-0.8vh) scale(1.02); 
+    box-shadow: 0 1.5vh 3vw rgba(0, 0, 0, 0.4);
+}
+
+.menu-card:not(.disabled):hover .card-title { 
+    color: #ffffff; 
+}
+
+/* СОСТОЯНИЕ ЗАБЛОКИРОВАННЫХ КНОПОК */
+.menu-card.disabled { 
+    pointer-events: none; 
+}
+
+.menu-card.disabled .card-icon { 
+    background-color: rgba(255, 255, 255, 0.03); 
+    border-color: rgba(255, 255, 255, 0.05); 
+    box-shadow: none; 
+    transform: none; 
+}
+
+.menu-card.disabled .card-icon img { 
+    opacity: 0.15; 
+    filter: grayscale(1); 
+}
+
+.menu-card.disabled .card-title { 
+    color: rgba(255, 255, 255, 0.9); 
+}
+
+/* --- БОЛЬШОЙ ЭКРАН НАСТРОЕК --- */
+.settings-board {
+    width: 55vw; 
+    padding: 4vh 3vw;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5vh;
+}
+
+.settings-title {
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 1.6vw;
+    font-weight: 600;
+    margin-bottom: 1vh;
+    border-bottom: 0.1vw solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1.5vh;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: sans-serif;
+    font-size: 1.1vw;
+}
+
+.setting-label {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* 1. Элемент карусели */
+.carousel {
+    display: flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 0.1vw solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5vw;
+    overflow: hidden;
+}
+
+.carousel-btn {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.5vw;
+    width: 2.5vw;
+    height: 4vh;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.carousel-btn:hover { 
+    background-color: rgba(255, 255, 255, 0.1); 
+}
+
+.carousel-value {
+    color: #ffffff;
+    font-size: 1vw;
+    padding: 0 1.5vw;
+    min-width: 14vw;
+    text-align: center;
+}
+
+/* 2. Кастомный Range Slider без дублирующихся свойств */
+.range-container {
+    display: flex;
+    align-items: center;
+    gap: 1.5vw;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 13vw;
+    background: rgba(255, 255, 255, 0.15);
+    height: 0.4vh; 
+    border-radius: 0.5vw;
+    outline: none;
+    padding: 0; 
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1vw; 
+    height: 1vw;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 0 0.4vw rgba(255, 255, 255, 0.4);
+    transition: transform 0.1s ease;
+    margin-top: 0; 
+}
+
+input[type="range"]::-webkit-slider-thumb:hover { 
+    transform: scale(1.15); 
+}
+
+.range-value { 
+    color: #ffffff; 
+    font-size: 1vw; 
+    font-weight: 600; 
+    min-width: 2.5vw; 
+    text-align: right; 
+}
+
+/* 3. Современные переключатели-рычаги с идеальной геометрией */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 3.2vw;
+    height: 3.4vh; 
+}
+
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 2vh;
+    transition: background-color 0.25s ease;
+}
+
+.toggle-slider::before {
+    content: "";
+    position: absolute;
+    height: 2.6vh; 
+    aspect-ratio: 1 / 1; 
+    top: 0.4vh;
+    left: 0.4vh;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1); 
+}
+
+input:checked + .toggle-slider { background-color: rgba(0, 245, 212, 0.4); } 
+input:checked + .toggle-slider::before { 
+    transform: translateX(calc(3.2vw - 2.6vh - 0.8vh)); 
+    background-color: #ffffff;
+    box-shadow: 0 0 0.5vw rgba(255, 255, 255, 0.6);
+}
+/* --- ДЛИННЫЕ КНОПКИ УПРАВЛЕНИЯ ВНИЗУ --- */
+.settings-actions {
+    display: flex;
+    gap: 2vw;
+    margin-top: 1vh;
+}
+
+.action-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.04);
+    border: 0.12vw solid transparent;
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 1vw;
+    font-weight: 500;
+    padding: 1.5vh 0;
+    border-radius: 0.6vw;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: background-color 0.2s ease, 
+                border-color 0.2s ease, 
+                box-shadow 0.2s ease, 
+                transform 0.1s ease;
+}
+
+.action-btn:active { 
+    transform: scale(0.98); 
+}
+
+.btn-cancel { 
+    border-color: rgba(244, 67, 54, 0.3); 
+}
+
+.btn-cancel:hover { 
+    background-color: rgba(244, 67, 54, 0.15); 
+    border-color: rgba(244, 67, 54, 0.7); 
+    box-shadow: 0 0 1.5vw rgba(244, 67, 54, 0.2); 
+}
+
+.btn-apply { 
+    border-color: rgba(76, 175, 80, 0.3); 
+}
+
+.btn-apply:hover { 
+    background-color: rgba(76, 175, 80, 0.15); 
+    border-color: rgba(76, 175, 80, 0.7); 
+    box-shadow: 0 0 1.5vw rgba(76, 175, 80, 0.2); 
+}
+
+/* --- КАСТОМНОЕ МОДАЛЬНОЕ ОКНО СОХРАНЕНИЯ --- */
+.custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(10, 10, 15, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease-in-out;
+}
+
+.custom-modal-overlay.modal-active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.custom-modal-window {
+    background-color: rgba(30, 30, 45, 0.85);
+    border: 0.1vw solid rgba(255, 255, 255, 0.15);
+    border-radius: 1vw;
+    padding: 3vh 3vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2vh;
+    box-shadow: 0 1.5vh 4vw rgba(0, 0, 0, 0.5);
+    transform: scale(0.9);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+}
+
+.custom-modal-overlay.modal-active .custom-modal-window {
+    transform: scale(1);
+}
+
+.success-icon {
+    font-size: 2.2vw;
+    color: #00f5d4;
+    width: 4vw;
+    height: 4vw;
+    border: 0.15vw solid #00f5d4;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 1vw rgba(0, 245, 212, 0.3);
+}
+
+.success-text {
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 1.1vw;
+    font-weight: 500;
+    text-align: center;
+}
+
+/* --- СТИЛИ ДЛЯ ЭКРАНА СОЗДАНИЯ МИРА --- */
+.create-board {
+    width: 82vw; /* Просторное окно под текстовые блоки */
+    min-height: 55vh;
+}
+
+/* Скрытие/показ этапов контента */
+.create-step-content {
+    display: none;
+    flex-direction: column;
+    gap: 2.5vh;
+    animation: fadeInStep 0.25s ease-out forwards;
+}
+
+.create-step-content.active {
+    display: flex;
+}
+
+@keyframes fadeInStep {
+    from { opacity: 0; transform: translateY(0.5vh); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Описание текущего действия */
+.step-description {
+    font-family: sans-serif;
+    font-size: 1vw;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.5vh;
+}
+
+/* Сетка для промптов (Этап 1) */
+.prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2vw;
+}
+
+.prompt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+}
+
+.prompt-label {
+    font-family: sans-serif;
+    font-size: 0.9vw;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Современные полупрозрачные текстовые поля (Glassmorphism) */
+.modern-textarea, .modern-input {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 0.1vw solid rgba(255, 255, 255, 0.12);
+    border-radius: 0.5vw;
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 0.95vw;
+    padding: 1.2vh 0.8vw;
+    outline: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.modern-textarea {
+    resize: none; /* Запрещаем ручное растягивание углов */
+    height: 12vh;
+    line-height: 1.4;
+}
+
+/* Огромное текстовое поле для сюжета (Этап 2) */
+.modern-textarea.textarea-huge {
+    height: 25vh;
+}
+
+.modern-input {
+    height: 4.5vh;
+}
+
+.modern-textarea:focus, .modern-input:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(0, 245, 212, 0.4); /* Бирюзовый неоновый фокус */
+    box-shadow: 0 0 1vw rgba(0, 245, 212, 0.1);
+}
+
+/* Двухколоночная сетка персонажа (Этап 3) */
+.char-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3vw;
+}
+
+.char-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+}
+
+.char-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1vh;
+}
+
+/* Контейнер успешного финала */
+.final-status-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2vh;
+    padding: 4vh 0;
+}
+
+/* Фиксация навигационных кнопок создания мира */
+.create-actions {
+    margin-top: 1.5vh;
+}
+/* --- СТИЛИ ДЛЯ ОБНОВЛЕННЫХ ХАРАКТЕРИСТИК И СТАТОВ --- */
+
+/* Компактная группа числовых инпутов */
+.stats-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2vh;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 0.1vw solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.5vw;
+    padding: 1.5vh 1vw;
+}
+
+/* Строка характеристики (название слева, инпут справа) */
+.stat-row-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Компактный числовой инпут */
+.modern-input.stat-input {
+    width: 6vw;
+    height: 3.8vh;
+    text-align: center;
+    padding: 0;
+}
+
+/* Кнопка автобаланса очков */
+.auto-balance-btn {
+    padding: 1.2vh 0;
+    font-size: 0.9vw;
+    margin-top: 1vh;
+}
+
+/* Уменьшенная текстовая зона для сохранения баланса высоты колонок */
+.modern-textarea.textarea-short {
+    height: 8.5vh;
+}
+
+/* Стиль для полностью заблокированного поля предметов (ReadOnly) */
+.modern-textarea.textarea-locked {
+    background-color: rgba(0, 0, 0, 0.2); /* Темная глухая подложка */
+    border-color: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.35); /* Тусклый серый текст */
+    cursor: not-allowed; /* Курсор запрета */
+    pointer-events: none; /* Игнорирует клики и выделения */
+}
+
+/* --- СТИЛИ ДЛЯ ЭКРАНА СПИСКА СОХРАНЕНИЙ --- */
+.saves-board {
+    width: 50vw; 
+    min-height: 45vh;
+}
+
+/* Вертикальный контейнер для списка сейвов */
+.saves-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    margin: 2vh 0;
+    max-height: 38vh; /* Ограничиваем высоту, чтобы активировать перемотку */
+    overflow-y: scroll; /* Изменили на scroll, чтобы ползунок отображался ВСЕГДА */
+    padding-right: 0.8vw; /* Зазор, чтобы строки не липли к ползунку */
+}
+
+/* Стилизация полосы прокрутки и ползунка */
+.saves-list::-webkit-scrollbar {
+    width: 0.45vw; /* Сделали ползунок шире и заметнее */
+}
+.saves-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 1vw;
+}
+.saves-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25); /* Сделали сам бегунок ярче */
+    border-radius: 1vw;
+    transition: background-color 0.2s ease;
+}
+.saves-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45); /* Бегунок подсвечивается при наведении */
+}
+
+/* Строка сохранения */
+.save-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 0.1vw solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.6vw;
+    padding: 1.8vh 1.5vw;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.save-row:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Название сохранения */
+.save-name {
+    font-family: sans-serif;
+    font-size: 1.1vw;
+    color: #ffffff;
+    font-weight: 500;
+}
+
+/* Группа кнопок справа */
+.save-actions-group {
+    display: flex;
+    gap: 1vw;
+}
+
+/* Базовая маленькая кнопка-иконка */
+.save-action-icon {
+    width: 2.2vw;
+    height: 2.2vw;
+    border-radius: 0.5vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.save-action-icon:active {
+    transform: scale(0.92);
+}
+
+.save-action-icon img {
+    max-width: 45%;
+    max-height: 45%;
+    object-fit: contain;
+    opacity: 1; /* Иконки внутри кнопок теперь всегда на 100% белые и контрастные */
+}
+
+/* --- ПОСТОЯННЫЕ ЦВЕТА И ЭФФЕКТЫ НЕОНОВОГО СВЕЧЕНИЯ --- */
+
+/* Кнопка Играть (Постоянно бирюзовая) */
+.btn-save-play {
+    background-color: rgba(0, 245, 212, 0.08);
+    border: 0.1vw solid rgba(0, 245, 212, 0.4);
+}
+.btn-save-play:hover {
+    background-color: rgba(0, 245, 212, 0.18);
+    border-color: rgba(0, 245, 212, 0.8);
+    box-shadow: 0 0 1vw rgba(0, 245, 212, 0.35); /* Неоновый glow становится ярче */
+}
+
+/* Кнопка Изменить (Постоянно фиолетовая) */
+.btn-save-edit {
+    background-color: rgba(195, 145, 255, 0.08);
+    border: 0.1vw solid rgba(195, 145, 255, 0.4);
+}
+.btn-save-edit:hover {
+    background-color: rgba(195, 145, 255, 0.18);
+    border-color: rgba(195, 145, 255, 0.8);
+    box-shadow: 0 0 1vw rgba(195, 145, 255, 0.35);
+}
+
+/* Кнопка Удалить (Постоянно красная) */
+.btn-save-delete {
+    background-color: rgba(244, 67, 54, 0.08);
+    border: 0.1vw solid rgba(244, 67, 54, 0.4);
+}
+.btn-save-delete:hover {
+    background-color: rgba(244, 67, 54, 0.18);
+    border-color: rgba(244, 67, 54, 0.8);
+    box-shadow: 0 0 1vw rgba(244, 67, 54, 0.35);
+}
+
+/* Корректировка высоты поля сюжета, чтобы оно идеально сочеталось с полем названия */
+.modern-textarea.textarea-huge {
+    height: 20vh; /* Уменьшили с 25vh до 20vh для баланса */
+}
+
+/* --- СТИЛИЗАЦИЯ ПОЛУЗУНКОВ ХАРАКТЕРИСТИК --- */
+
+/* Контейнер ползунков характеристик (чтобы они стояли ровно) */
+.stat-range-container {
+    display: flex;
+    align-items: center;
+    gap: 1vw;
+}
+
+/* Компактный кастомный ползунок характеристик */
+.stat-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 11vw; /* Сделали чуть уже основных настроек для баланса строки */
+    background: rgba(255, 255, 255, 0.15);
+    height: 0.4vh; 
+    border-radius: 0.5vw;
+    outline: none;
+    padding: 0;
+}
+
+/* Бегунок характеристик (точь-в-точь как бегунок прокрутки) */
+.stat-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 0.9vw;
+    height: 0.9vw;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.65); /* Такой же матовый полупрозрачный белый */
+    cursor: pointer;
+    box-shadow: 0 0 0.3vw rgba(255, 255, 255, 0.3);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.stat-slider::-webkit-slider-thumb:hover { 
+    background: #ffffff; /* Загорается чистым белым при наведении */
+    transform: scale(1.15); 
+}
+
+/* Выравнивание и ширина цифры текущего значения стата */
+.range-value.stat-val {
+    min-width: 1.5vw;
+    font-size: 0.95vw;
+    text-align: center;
+}
+
+/* --- КРАСИВЫЙ ПОЛУЗУНОК ДЛЯ ВСЕХ ТЕКСТОВЫХ ПОЛЕЙ (TEXTAREA) --- */
+.modern-textarea::-webkit-scrollbar {
+    width: 0.4vw; /* Аккуратная ширина */
+}
+
+.modern-textarea::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 1vw;
+    margin: 0.5vh 0; /* Небольшой зазор от краев */
+}
+
+.modern-textarea::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2); /* Красивый матовый ползунок */
+    border-radius: 1vw;
+    transition: background-color 0.2s ease;
+}
+
+.modern-textarea::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4); /* Загорается ярче при наведении */
+}
+
+/* --- ОБНОВЛЕННЫЙ ШРИФТ ДЛЯ ЗНАЧЕНИЙ ХАРАКТЕРИСТИК --- */
+.range-value.stat-val {
+    min-width: 1.5vw;
+    font-family: 'Courier New', Courier, monospace; /* Игровой моноширинный шрифт */
+    font-size: 1.05vw;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 0 0.5vw rgba(255, 255, 255, 0.2);
+    text-align: right; /* Прижимаем к правому краю для ровного выравнивания */
+}
+
+/* Эффект легкого игрового подскока при наведении */
+.auto-balance-btn:hover {
+    transform: translateY(-0.2vh) scale(1.01) !important; 
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+}
+/* Финальная аккуратная кнопка, прижатая влево */
+.auto-balance-btn {
+    width: auto;
+    height: 3vh !important;     
+    padding: 0 1vw !important;  
+    font-size: 0.75vw !important; 
+    font-weight: 500;
+    
+    /* Слева отступ 0 (прижимает влево), справа auto (не дает растягиваться), сверху 1.5vh (зазор от ползунков) */
+    margin: 1.5vh auto 0 0 !important; 
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0.5vw;
+}
+
+
+/* Невидимый контейнер, который насильно забирает на себя всё растягивание сетки вниз */
+.create-col-spacer {
+    flex-grow: 1;          /* Заполняет собой всю оставшуюся высоту колонки */
+    pointer-events: none;  /* Делает его полностью прозрачным для кликов мыши */
+    background: transparent;
+}
+
+/* --- СТИЛИ ДЛЯ ОСНОВНОГО ОКНА ИГРЫ --- */
+.game-container {
+    display: flex;
+    width: 82vw; /* Общая ширина игрового стола */
+    height: 68vh; /* Фиксированная высота для удобства прокрутки чата */
+    gap: 1.5vw;
+}
+
+/* Общие свойства для боковых панелей игры (Лист персонажа и Отладка) */
+.game-sidebar {
+    flex: 0 0 18vw; /* Фиксированная ширина боковин */
+    padding: 2.5vh 1vw;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+}
+
+.panel-title {
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 1.2vw;
+    font-weight: 600;
+    border-bottom: 0.1vw solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 1vh;
+}
+
+.panel-subtitle {
+    color: rgba(255, 255, 255, 0.5);
+    font-family: sans-serif;
+    font-size: 0.9vw;
+    font-weight: 500;
+    margin-top: 1vh;
+}
+
+/* Элементы профиля */
+.char-profile { display: flex; flex-direction: column; gap: 1vh; }
+.profile-row { display: flex; gap: 0.5vw; font-family: sans-serif; font-size: 0.9vw; }
+.prof-label { color: rgba(255, 255, 255, 0.4); }
+.prof-val { color: #ffffff; font-weight: 600; }
+.prof-text { font-family: sans-serif; font-size: 0.85vw; color: rgba(255, 255, 255, 0.8); line-height: 1.3; }
+.text-muted { color: rgba(255, 255, 255, 0.3); }
+
+/* Список характеристик в интерфейсе игры */
+.game-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8vh;
+}
+.game-stat-item {
+    display: flex;
+    justify-content: space-between;
+    font-family: sans-serif;
+    font-size: 0.9vw;
+}
+.g-stat-label { color: rgba(255, 255, 255, 0.7); }
+
+/* ЦЕНТРАЛЬНАЯ ЧАТ-ЗОНА */
+.game-chat-layout {
+    flex: 1; /* Забирает всё оставшееся пространство между боковинами */
+    padding: 2.5vh 1.5vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2vh;
+}
+
+/* Зона сообщений с красивым скроллбаром */
+.chat-messages-area {
+    flex-grow: 1;
+    overflow-y: scroll;
+    padding-right: 0.5vw;
+    display: flex;
+    flex-direction: column;
+    gap: 2vh;
+}
+
+.chat-messages-area::-webkit-scrollbar { width: 0.4vw; }
+.chat-messages-area::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.02); border-radius: 1vw; }
+.chat-messages-area::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 1vw; }
+.chat-messages-area::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+/* Стилизация сообщений */
+.msg {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5vh;
+    padding: 1.2vh 1vw;
+    border-radius: 0.5vw;
+    font-family: sans-serif;
+    max-width: 90%;
+}
+
+/* Сообщение от Системы/Игры (Прижато влево, синеватый фон) */
+.msg-system {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-left: 0.15vw solid rgba(73, 163, 255, 0.6);
+    align-self: flex-start;
+}
+.msg-system .msg-author { color: rgba(73, 163, 255, 0.9); font-weight: 600; font-size: 0.85vw; }
+
+/* Сообщение от Пользователя (Прижато вправо, бирюзовый оттенок) */
+.msg-user {
+    background-color: rgba(0, 245, 212, 0.04);
+    border-right: 0.15vw solid rgba(0, 245, 212, 0.6);
+    align-self: flex-end;
+    max-width: 80%;
+}
+.msg-user .msg-author { color: rgba(0, 245, 212, 0.9); font-weight: 600; font-size: 0.85vw; text-align: right; }
+
+.msg-text { font-size: 0.95vw; color: #ffffff; line-height: 1.4; }
+
+/* Строка ввода внизу чата */
+.chat-input-row {
+    display: flex;
+    gap: 1vw;
+    align-items: center;
+}
+.chat-input-field {
+    flex-grow: 1;
+    height: 4.5vh;
+}
+.send-msg-btn {
+    flex: 0 0 7vw;
+    padding: 0;
+    height: 4.5vh;
+    font-size: 0.9vw;
+}
+
+/* ПАНЕЛЬ ОТЛАДКИ ИИ (Разработчик) */
+.dev-panel-board {
+    border-color: rgba(155, 93, 229, 0.3); /* Фиолетовая каемка админа */
+}
+.dev-settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+}
+.dev-param-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: sans-serif;
+    font-size: 0.85vw;
+}
+.stat-slider.dev-range {
+    width: 6vw;
+}
+.toggle-switch.dev-toggle-mini {
+    width: 2.5vw;
+    height: 2.8vh;
+}
+.toggle-switch.dev-toggle-mini input:checked + .toggle-slider::before {
+    transform: translateX(calc(2.5vw - 2.2vh - 0.6vh)); /* перерасчет под мини-тогл */
+}
+.toggle-switch.dev-toggle-mini .toggle-slider::before {
+    height: 2.2vh;
+    top: 0.3vh;
+    left: 0.3vh;
+}
+
+.game-stat-item .stat-val {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.05vw;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95); /* Исправлен черный цвет */
+    text-shadow: 0 0 0.5vw rgba(255, 255, 255, 0.2);
+}
+
+/* Делаем текстовые блоки листа персонажа адаптивными со встроенным скроллом */
+.prof-text {
+    max-height: 12vh;
+    overflow-y: auto;
+    padding-right: 0.3vw;
+}
+.prof-text::-webkit-scrollbar { width: 0.2vw; }
+.prof-text::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 1vw; }

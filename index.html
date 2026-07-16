@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Новое название вкладки вашего сайта -->
+    <title>Deep Space</title>
+    
+    <!-- Подключение иконки вкладки (Favicon) -->
+    <link rel="icon" href="media/logo.png" type="image/png">
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <div class="wrapper">
+        <!-- ГЛАВНЫЙ ЭКРАН -->
+        <div id="main-screen" class="screen-wrapper active">
+            <!-- Адаптивная рамка игровой сессии -->
+            <section class="status-board">
+                <div class="status-row">
+                    <span class="status-label">Второй игрок:</span>
+                    <span id="player-two-status" class="status-value loading">Загрузка...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Файл сохранения:</span>
+                    <span id="save-status" class="status-value loading">Загрузка...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Режим сессии:</span>
+                    <span id="admin-status" class="status-value spec-value loading">Загрузка...</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-label">Баланс DeepSeek API (токенов):</span>
+                    <span id="tokens-status" class="status-value token-value loading">Загрузка...</span>
+                </div>
+            </section>
+
+            <!-- Главное меню -->
+            <main class="menu-container">
+                <a href="#" id="btn-create" class="menu-card disabled">
+                    <div class="card-icon">
+                        <img src="media/icons/plus.png" alt="+">
+                    </div>
+                    <span class="card-title">Создать новый мир</span>
+                </a>
+
+                <a href="#" id="btn-continue" class="menu-card disabled">
+                    <div class="card-icon">
+                        <img src="media/icons/game.png" alt="Играть">
+                    </div>
+                    <span class="card-title">Продолжить игру</span>
+                </a>
+                
+                <a href="#" id="btn-settings" class="menu-card">
+                    <div class="card-icon">
+                        <img src="media/icons/settings.png" alt="Настройки">
+                    </div>
+                    <span class="card-title">Настройки</span>
+                </a>
+            </main>
+        </div>
+
+        <!-- ЭКРАН НАСТРОЕК -->
+        <div id="settings-screen" class="screen-wrapper">
+            <section class="settings-board">
+                <h2 class="settings-title">Настройки</h2>
+
+                <!-- Изменили название на Фоновое изображение -->
+                <div class="setting-item">
+                    <span class="setting-label">Фоновое изображение</span>
+                    <div class="carousel">
+                        <button class="carousel-btn" id="bg-prev">&lsaquo;</button>
+                        <span class="carousel-value" id="bg-name">Звездное небо</span>
+                        <button class="carousel-btn" id="bg-next">&rsaquo;</button>
+                    </div>
+                </div>
+
+                <!-- 2. Масштаб интерфейса -->
+                <div class="setting-item">
+                    <span class="setting-label">Масштаб интерфейса</span>
+                    <div class="range-container">
+                        <input type="range" id="scale-range" min="50" max="150" value="100" step="5">
+                        <span class="range-value" id="scale-val">100%</span>
+                    </div>
+                </div>
+
+                <!-- 3. Переключатель звука -->
+                <div class="setting-item">
+                    <span class="setting-label">Звуковые эффекты</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Переключатель параллакса -->
+                <div class="setting-item">
+                    <span class="setting-label">3D-эффект движения фона</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="parallax-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- 4. Режим разработчика -->
+                <div class="setting-item" id="dev-setting-row" style="display: none;">
+                    <span class="setting-label">Режим разработчика</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dev-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Нижние кнопки управления -->
+                <div class="settings-actions">
+                    <button class="action-btn btn-cancel" id="settings-cancel">Отмена</button>
+                    <button class="action-btn btn-apply" id="settings-apply">Применить</button>
+                </div>
+            </section>
+        </div>
+
+          <!-- ЭКРАН СОЗДАНИЯ МИРА -->
+        <div id="create-screen" class="screen-wrapper">
+            <section class="settings-board create-board">
+                <h2 class="settings-title" id="create-step-title">Создание мира: Этап 1 из 3</h2>
+
+                <!-- ЭТАП 1: Системные промпты DeepSeek -->
+                <div class="create-step-content active" data-step="1">
+                    <p class="step-description">Редактирование системных промптов нейросети DeepSeek</p>
+                    <div class="prompt-grid">
+                        <div class="prompt-field">
+                            <label class="prompt-label">Основной промпт</label>
+                            <textarea class="modern-textarea" placeholder="Генеральная логика мира, законы вселенной и стиль повествования..."></textarea>
+                        </div>
+                        <div class="prompt-field">
+                            <label class="prompt-label">Логика расчетов</label>
+                            <textarea class="modern-textarea" placeholder="Правила вычисления характеристик, боев и проверок навыков..."></textarea>
+                        </div>
+                        <div class="prompt-field">
+                            <label class="prompt-label">Прием сообщений</label>
+                            <textarea class="modern-textarea" placeholder="Правила интерпретации текстовых действий, которые пишет игрок..."></textarea>
+                        </div>
+                        <div class="prompt-field">
+                            <label class="prompt-label">Выдача информации</label>
+                            <textarea class="modern-textarea" placeholder="Формат вывода ответов (текст истории, логи изменений, статус)..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ЭТАП 2: Название и описание сюжета -->
+                <div class="create-step-content" data-step="2">
+                    <p class="step-description">Укажите имя для вашего нового мира и его стартовую легенду</p>
+                    
+                    <!-- Новое поле для названия сохранения -->
+                    <div class="save-title-field" style="display: flex; flex-direction: column; gap: 1vh; margin-bottom: 1vh;">
+                        <label class="prompt-label">Название сохранения</label>
+                        <input type="text" id="new-save-name" class="modern-input" placeholder="Например: Древний Авалон, Забытые Земли...">
+                    </div>
+
+                    <div class="save-story-field" style="display: flex; flex-direction: column; gap: 1vh;">
+                        <label class="prompt-label">Описание сюжета (Легенда мира)</label>
+                        <textarea class="modern-textarea textarea-huge" placeholder="В те далекие времена, когда магия еще теплилась в корнях древних деревьев, а на вершинах туманных гор высились замки забытых королей... Тьма пробудилась на восточных рубежах королевства, и старый трактирщик шепотом поведал вам древнюю легенду..."></textarea>
+                    </div>
+                </div>
+
+                <!-- ЭТАП 3: Характеристики персонажа (Ползунки параметров) -->
+                <div class="create-step-content" data-step="3">
+                    <p class="step-description">Укажите стартовые данные и атрибуты вашего персонажа</p>
+                    <div class="char-grid">
+                        <!-- Левая колонка (Характеристики в виде ползунков) -->
+                        <div class="char-column">
+                            <div class="char-field">
+                                <label class="prompt-label">Имя персонажа</label>
+                                <input type="text" id="char-name" class="modern-input" placeholder="Например: Арагорн, Люциус, Эвелин...">
+                            </div>
+                            
+                            <!-- Блок параметров в виде красивых слайдеров -->
+                            <div class="stats-group">
+                                <div class="stat-row-item">
+                                    <label class="prompt-label">Сила</label>
+                                    <div class="range-container stat-range-container">
+                                        <input type="range" id="stat-strength" class="stat-slider" min="1" max="15" value="5">
+                                        <span id="val-strength" class="range-value stat-val">5</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row-item">
+                                    <label class="prompt-label">Выносливость</label>
+                                    <div class="range-container stat-range-container">
+                                        <input type="range" id="stat-endurance" class="stat-slider" min="1" max="15" value="5">
+                                        <span id="val-endurance" class="range-value stat-val">5</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row-item">
+                                    <label class="prompt-label">Ловкость</label>
+                                    <div class="range-container stat-range-container">
+                                        <input type="range" id="stat-agility" class="stat-slider" min="1" max="15" value="5">
+                                        <span id="val-agility" class="range-value stat-val">5</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row-item">
+                                    <label class="prompt-label">Суперспособности</label>
+                                    <div class="range-container stat-range-container">
+                                        <input type="range" id="stat-powers" class="stat-slider" min="1" max="15" value="5">
+                                        <span id="val-powers" class="range-value stat-val">5</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row-item">
+                                    <label class="prompt-label">Дар убеждения</label>
+                                    <div class="range-container stat-range-container">
+                                        <input type="range" id="stat-charisma" class="stat-slider" min="1" max="15" value="5">
+                                        <span id="val-charisma" class="range-value stat-val">5</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Кнопка автобаланса -->
+                            <!-- Кнопка автобаланса параметров -->
+                            <button type="button" id="btn-auto-balance" class="action-btn btn-apply auto-balance-btn">Автоматическое распределение</button>
+                            <!-- НОВОЕ: Невидимый контейнер-распорка для поглощения высоты сетки -->
+                            <div class="create-col-spacer"></div>
+                        </div>
+
+                        <!-- Правая колонка -->
+                        <div class="char-column">
+                            <div class="char-field">
+                                <label class="prompt-label">Описание внешности</label>
+                                <textarea id="char-appearance" class="modern-textarea" placeholder="Рост, телосложение, шрамы, фамильный плащ, приметные черты лица..."></textarea>
+                            </div>
+                            <div class="char-field">
+                                <label class="prompt-label">Карманы (Предметы) <span style="opacity: 0.5;">— Будут пополняться в игре</span></label>
+                                <textarea id="char-inventory" class="modern-textarea textarea-locked" readonly placeholder="Пусто. Снаряжение будет получено по мере прохождения истории..."></textarea>
+                            </div>
+                            <div class="char-field">
+                                <label class="prompt-label">Дополнительные характеристики</label>
+                                <textarea id="char-features" class="modern-textarea textarea-short" placeholder="Происхождение, фракция, репутация среди местных гильдий..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ЭТАП ФИНАЛ: Завершение генерации -->
+                <div class="create-step-content" data-step="4">
+                    <div class="final-status-container">
+                        <div class="success-icon">&#10003;</div>
+                        <p class="success-text" style="font-size: 1.3vw; margin-top: 1vh;">Файл сохранения успешно сгенерирован!</p>
+                        <p class="step-description" style="margin-bottom: 0;">Новый игровой мир готов к запуску.</p>
+                    </div>
+                </div>
+
+                <!-- Навигация внизу панели -->
+                <div class="settings-actions create-actions">
+                    <button class="action-btn btn-cancel" id="create-prev">&lsaquo; Назад</button>
+                    <button class="action-btn btn-apply" id="create-next">Далее &rsaquo;</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- ЭКРАН СПИСКА СОХРАНЕНИЙ -->
+        <div id="saves-screen" class="screen-wrapper">
+            <section class="settings-board saves-board">
+                <h2 class="settings-title">Список сохранений</h2>
+                
+                <p class="step-description">Выберите созданный мир для продолжения сессии или изменения его параметров</p>
+                
+                <!-- Контейнер, куда JavaScript будет вставлять строки сохранений -->
+                <div id="saves-list-container" class="saves-list">
+                    <!-- Строки генерируются автоматически через JS -->
+                </div>
+
+                <!-- Кнопка навигации внизу панели -->
+                <div class="settings-actions">
+                    <button class="action-btn btn-cancel" id="saves-cancel">Отмена</button>
+                </div>
+            </section>
+        </div>
+
+        <!-- ОСНОВНОЕ ОКНО ИГРЫ -->
+        <div id="game-screen" class="screen-wrapper">
+            <div class="game-container">
+                
+                <!-- ЛЕВАЯ ПАНЕЛЬ: Нередактируемый лист персонажа -->
+                <aside class="game-sidebar settings-board">
+                    <h3 class="panel-title">Персонаж</h3>
+                    <div class="char-profile">
+                        <div class="profile-row"><span class="prof-label">Имя:</span> <span id="game-char-name" class="prof-val">Герой</span></div>
+                        <div class="profile-row"><span class="prof-label">Внешность:</span> <p id="game-char-appearance" class="prof-text">Не указано</p></div>
+                    </div>
+                    
+                    <h4 class="panel-subtitle">Характеристики</h4>
+                    <div class="game-stats-list">
+                        <div class="game-stat-item"><span class="g-stat-label">Сила:</span> <span id="g-val-strength" class="stat-val">5</span></div>
+                        <div class="game-stat-item"><span class="g-stat-label">Выносливость:</span> <span id="g-val-endurance" class="stat-val">5</span></div>
+                        <div class="game-stat-item"><span class="g-stat-label">Ловкость:</span> <span id="g-val-agility" class="stat-val">5</span></div>
+                        <div class="game-stat-item"><span class="g-stat-label">Суперспособности:</span> <span id="g-val-powers" class="stat-val">5</span></div>
+                        <div class="game-stat-item"><span class="g-stat-label">Убеждение:</span> <span id="g-val-charisma" class="stat-val">5</span></div>
+                    </div>
+
+                    <h4 class="panel-subtitle">Инвентарь</h4>
+                    <p id="game-char-inventory" class="prof-text text-muted">Карманы пусты...</p>
+                </aside>
+
+                <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: Интерактивный Чат -->
+                <main class="game-chat-layout settings-board">
+                    <!-- Окно сообщений (листается) -->
+                    <div id="chat-messages-box" class="chat-messages-area">
+                        <!-- Пример сообщения от игры -->
+                        <div class="msg msg-system">
+                            <span class="msg-author">История:</span>
+                            <p class="msg-text">Вы приходите в себя в полумраке старой таверны. На востоке собираются грозовые тучи. Что вы будете делать?</p>
+                        </div>
+                        <!-- Пример сообщения от пользователя -->
+                        <div class="msg msg-user">
+                            <span class="msg-author">Вы:</span>
+                            <p class="msg-text">Осмотреться вокруг и проверить снаряжение.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Зона ввода сообщения -->
+                    <div class="chat-input-row">
+                        <input type="text" id="game-chat-input" class="modern-input chat-input-field" placeholder="Напишите ваше действие...">
+                        <button type="button" id="btn-send-message" class="action-btn btn-apply send-msg-btn">Отправить</button>
+                    </div>
+                </main>
+
+                <!-- ПРАВАЯ ПАНЕЛЬ: Отладка ИИ (Скрыта, если режим разработчика выключен) -->
+                <aside id="game-dev-panel" class="game-sidebar settings-board dev-panel-board">
+                    <h3 class="panel-title spec-value" style="text-shadow: 0 0 0.8vw rgba(155, 93, 229, 0.4);">Отладка ИИ</h3>
+                    
+                    <div class="char-field">
+                        <label class="prompt-label">Прямой запрос к DeepSeek</label>
+                        <textarea class="modern-textarea textarea-short" placeholder="Написать ИИ в обход игрового контекста..."></textarea>
+                    </div>
+
+                    <h4 class="panel-subtitle" style="margin-top: 2vh;">Системные параметры</h4>
+                    <div class="dev-settings-list">
+                        <div class="dev-param-row">
+                            <span class="status-label">Temperature:</span>
+                            <input type="range" class="stat-slider dev-range" min="0" max="2" value="0.7" step="0.1">
+                        </div>
+                        <div class="dev-param-row">
+                            <span class="status-label">Top_P:</span>
+                            <input type="range" class="stat-slider dev-range" min="0" max="1" value="0.9" step="0.05">
+                        </div>
+                        <div class="dev-param-row">
+                            <span class="status-label">Stream Mode:</span>
+                            <label class="toggle-switch dev-toggle-mini">
+                                <input type="checkbox" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="create-col-spacer"></div>
+                    <button type="button" class="action-btn btn-cancel auto-balance-btn" style="width: 100% !important; margin: 2vh 0 0 0 !important;">Сбросить контекст</button>
+                </aside>
+
+            </div>
+            
+            <!-- Кнопка возврата в меню в самом низу экрана игры -->
+            <div class="settings-actions" style="width: 100%; max-width: 58vw; margin-top: 2vh;">
+                <button class="action-btn btn-cancel" id="game-exit-menu">Выйти в главное меню</button>
+            </div>
+        </div>
+
+    </div>
+
+    
+
+    <!-- Кастомное модальное окно успешного сохранения -->
+    <div id="save-success-modal" class="custom-modal-overlay">
+        <div class="custom-modal-window">
+            <div class="success-icon">&#10003;</div>
+            <p class="success-text">Настройки успешно применены</p>
+        </div>
+    </div>
+
+</body>
+</html>
